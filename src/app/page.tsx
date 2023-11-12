@@ -1,48 +1,73 @@
 "use client";
 import Navbar from "@/components/Navbar";
-import Examples from "@/components/Examples";
+import { useState } from "react";
+import { useCompletion } from "ai/react";
+import { PromptInput } from "@/components/PromptInput";
 
 export default function Home() {
+  const { completion, complete, isLoading } = useCompletion({
+    api: "/api/qa-openai",
+    onFinish: (_prompt, answer) => {
+      setMessages((prevMessages) => {
+        const [first, ...other] = prevMessages;
+        return [[answer, first[0]], ...other];
+      });
+    },
+  });
+  const [messages, setMessages] = useState<Array<string[]>>([]);
+
+  const onPromptSubmit = (prompt: string) => {
+    setMessages((prevMessages) => [[prompt], ...prevMessages]);
+    complete(prompt);
+  };
+
+  const clearMessages = () => {
+    setMessages([]);
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
       <Navbar />
-      <div className="w-full min-h-screen relative isolate overflow-hidden bg-gray-900 px-6 py-24 shadow-2xl sm:px-24 xl:py-32">
-        <h1 className="mt-16 mx-auto max-w-2xl text-center text-5xl font-bold tracking-tight text-white sm:text-6xl">
-          xgeeks AI
-        </h1>
 
-        <p className="mx-auto mt-4 max-w-xl text-center text-xl leading-8 text-slate-400">
-          Example use cases to get you started.
-        </p>
-
-        <Examples />
-
-        <svg
-          viewBox="0 0 1024 1024"
-          className="absolute left-1/2 -z-10 h-[64rem] w-[64rem] -translate-x-1/2"
-          aria-hidden="true"
-        >
-          <circle
-            cx={512}
-            cy={512}
-            r={512}
-            fill="url(#759c1415-0410-454c-8f7c-9a820de03641)"
-            fillOpacity="0.5"
+      <div className="flex flex-col w-full min-h-screen h-full bg-gray-900 pt-[100px]">
+        <div className="container mx-auto">
+          <PromptInput
+            disabled={isLoading}
+            onSubmit={(prompt) => onPromptSubmit(prompt)}
           />
-          <defs>
-            <radialGradient
-              id="759c1415-0410-454c-8f7c-9a820de03641"
-              cx={0}
-              cy={0}
-              r={1}
-              gradientUnits="userSpaceOnUse"
-              gradientTransform="translate(512 512) rotate(90) scale(512)"
-            >
-              <stop stopColor="rgb(17 24 39)" />
-              <stop offset={1} stopColor="rgb(125 211 252)" stopOpacity={0} />
-            </radialGradient>
-          </defs>
-        </svg>
+
+          {!!messages.length && (
+            <div className="messages whitespace-pre-wrap rounded-b-md min-h-[40px] mb-[20px] bg-gray-800 p-4 mb-5">
+              <div className="flex items-center mb-4">
+                <button
+                  className="ml-auto bg-gray-700 hover:bg-gray-600 text-white font-bold py-1 px-4 rounded"
+                  onClick={clearMessages}
+                >
+                  Clear Messages
+                </button>
+              </div>
+
+              <div>
+                {isLoading && !!completion.length && (
+                  <div className="message even:bg-gray-500 odd:bg-gray-600 odd:mt-4 text-white p-5">
+                    {completion}
+                  </div>
+                )}
+
+                {messages.map((conversation) => {
+                  return conversation.map((message) => (
+                    <div
+                      key={message}
+                      className="message whitespace-pre-wrap even:bg-gray-500 odd:bg-gray-600 odd:mt-4 text-white p-5"
+                    >
+                      {message}
+                    </div>
+                  ));
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
